@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: causal-x-demo
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.18.0
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: COLLECTOR_HMAC_SECRET
+        generateValue: true
+      - key: PSEUDONYM_SALT
+        generateValue: true
+      - key: DEV_ACME_USER_PASS
+        generateValue: true
+      - key: DEV_GLOBEX_USER_PASS
+        generateValue: true
+      - key: CAUSALX_COLLECTOR_API_KEY
+        generateValue: true
+      - key: DEV_GLOBEX_COLLECTOR_KEY
+        generateValue: true

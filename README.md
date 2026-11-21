@@ -22,7 +22,6 @@ No Gemini API key is required to run this preview.
 ## Full-stack application
 
 The `causal-x/` folder contains the frontend, FastAPI backend, and local telemetry collector. See [causal-x/README.md](causal-x/README.md) for its setup and architecture.
-
 ## Deploy a public demo on Render
 
 This repository includes a Render Blueprint in `render.yaml`. In Render, create a **Blueprint** and connect this repository to deploy the demo.

@@ -7,3 +7,9 @@ coverage/
 .env*
 !.env.example
 .causalx-preview.db*
+**/*.db
+**/*.db-journal
+**/*.db-shm
+**/*.db-wal
+**/__pycache__/
+**/.pytest_cache/

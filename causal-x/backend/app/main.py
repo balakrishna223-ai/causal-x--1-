@@ -1,7 +1,11 @@
 import asyncio
 from contextlib import asynccontextmanager, suppress
-from fastapi import FastAPI
+import logging
+from pathlib import Path
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.routes_auth import router as auth_router
 from app.api.routes_health import router as health_router
@@ -15,6 +19,7 @@ from app.services.ingestion_service import evaluate_offline_collectors
 from app.services.ws_manager import ws_manager
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 async def _collector_offline_monitor_loop() -> None:
@@ -33,8 +38,8 @@ async def _collector_offline_monitor_loop() -> None:
                         "last_seen_utc": col.last_seen_utc.isoformat() if col.last_seen_utc else None,
                     },
                 )
-        except Exception:  # noqa: BLE001
-            pass
+        except SQLAlchemyError:
+            logger.exception("Collector offline monitor database check failed")
         finally:
             db.close()
 
@@ -48,8 +53,10 @@ async def lifespan(_app: FastAPI):
             seed_initial_data(db)
         finally:
             db.close()
-    except Exception:  # noqa: BLE001
-        pass
+    except SQLAlchemyError:
+        logger.exception("Backend database initialization failed")
+        if settings.app_env.strip().lower() == "production":
+            raise
 
     monitor_task = asyncio.create_task(_collector_offline_monitor_loop())
     try:
@@ -82,3 +89,19 @@ app.include_router(health_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(telemetry_router, prefix="/api/v1")
 app.include_router(incidents_router, prefix="/api/v1")
+
+frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if frontend_dist.is_dir():
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def serve_frontend(path: str) -> FileResponse:
+        if path == "api" or path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+
+        root = frontend_dist.resolve()
+        requested = (root / path).resolve()
+        if root not in requested.parents and requested != root:
+            raise HTTPException(status_code=404, detail="Not found")
+        if not requested.is_file():
+            requested = root / "index.html"
+        return FileResponse(requested)

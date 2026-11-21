@@ -225,7 +225,7 @@ const SESSION_KEY = "causalx_auth_session";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim().replace(/\/$/, "") ||
-  "http://localhost:8000";
+  (import.meta.env.PROD ? window.location.origin : "http://localhost:8000");
 
 const WS_BASE =
   (import.meta.env.VITE_WS_BASE_URL as string | undefined)?.trim().replace(/\/$/, "") ||

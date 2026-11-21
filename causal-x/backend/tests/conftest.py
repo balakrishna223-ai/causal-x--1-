@@ -16,7 +16,7 @@ if COLLECTOR_DIR not in sys.path:
 from app.db.seed import seed_initial_data  # noqa: E402
 from app.db.session import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
-import app.models  # noqa: F401, E402
+from app import models as _models  # noqa: F401, E402
 
 
 @pytest.fixture()

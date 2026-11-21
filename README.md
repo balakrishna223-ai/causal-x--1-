@@ -24,6 +24,8 @@ No Gemini API key is required to run this preview.
 The `causal-x/` folder contains the frontend, FastAPI backend, and local telemetry collector. See [causal-x/README.md](causal-x/README.md) for its setup and architecture.
 ## Deploy a public demo on Render
 
-This repository includes a Render Blueprint in `render.yaml`. In Render, create a **Blueprint** and connect this repository to deploy the demo.
+This repository includes a Render Blueprint in `render.yaml`. It builds the React frontend, serves it and the FastAPI API from one web service, and provisions PostgreSQL. The local collector remains in the customer environment and can send telemetry to the deployed API.
 
-The free service may sleep when idle, and its local SQLite data can be lost when the service restarts or redeploys. This setup is for demonstration, not production use.
+In Render, create a **Blueprint** and connect this repository to deploy the demo. Render generates the authentication and proof secrets; never replace them with committed values.
+
+The free web service may sleep when idle, and the free PostgreSQL plan has a limited lifetime and storage. This is suitable for evaluation, not continuous production availability.

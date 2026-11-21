@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import model_validator
 
 
 class Settings(BaseSettings):
@@ -34,6 +35,33 @@ class Settings(BaseSettings):
     threshold_memory_percent: float = 90.0
     threshold_latency_ms: float = 200.0
     threshold_packet_loss_percent: float = 5.0
+
+    @model_validator(mode="after")
+    def require_production_secrets(self) -> "Settings":
+        if self.app_env.strip().lower() == "production":
+            secrets = {
+                "JWT_SECRET_KEY": self.jwt_secret_key,
+                "COLLECTOR_HMAC_SECRET": self.collector_hmac_secret,
+                "PSEUDONYM_SALT": self.pseudonym_salt,
+            }
+            invalid = [
+                name
+                for name, value in secrets.items()
+                if len(value) < 32 or value.lower().startswith("change-me")
+            ]
+            if len(set(secrets.values())) != len(secrets):
+                invalid.append("secrets must be distinct")
+            if invalid:
+                raise ValueError(
+                    "Production requires strong, unique values for: " + ", ".join(invalid)
+                )
+            if not self.database_url.startswith(
+                ("postgres://", "postgresql://", "postgresql+psycopg://")
+            ):
+                raise ValueError("Production requires a PostgreSQL database URL")
+            if "localhost" in self.database_url.lower() or "change-me" in self.database_url.lower():
+                raise ValueError("Production requires a configured non-local database URL")
+        return self
 
     @property
     def cors_origin_list(self) -> List[str]:

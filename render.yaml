@@ -1,19 +1,23 @@
 services:
   - type: web
     name: causal-x-demo
-    runtime: node
+    runtime: python
     plan: free
     branch: main
-    buildCommand: npm install --legacy-peer-deps && npm run build
-    startCommand: npm start
+    buildCommand: python -m pip install -r causal-x/backend/requirements.txt && npm --prefix causal-x/frontend ci && npm --prefix causal-x/frontend run build
+    startCommand: cd causal-x/backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/v1/health
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
       - key: NODE_VERSION
         value: 24.18.0
-      - key: NODE_ENV
-        value: production
       - key: APP_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: causalx-db
+          property: connectionString
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: COLLECTOR_HMAC_SECRET
@@ -28,3 +32,10 @@ services:
         generateValue: true
       - key: DEV_GLOBEX_COLLECTOR_KEY
         generateValue: true
+
+databases:
+  - name: causalx-db
+    databaseName: causalx_db
+    user: causalx
+    plan: free
+    postgresMajorVersion: "16"

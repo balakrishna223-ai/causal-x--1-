@@ -11,8 +11,17 @@ class Base(DeclarativeBase):
 
 settings = get_settings()
 
+
+def normalize_database_url(database_url: str) -> str:
+    if database_url.startswith("postgres://"):
+        return "postgresql+psycopg://" + database_url.removeprefix("postgres://")
+    if database_url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + database_url.removeprefix("postgresql://")
+    return database_url
+
+
 engine = create_engine(
-    settings.database_url,
+    normalize_database_url(settings.database_url),
     pool_pre_ping=True,
     future=True,
 )

@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
+from contextlib import contextmanager
 import json
 import os
 import sqlite3
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterator, List
 
 
 class SQLiteCollectorStore:
@@ -20,10 +21,18 @@ class SQLiteCollectorStore:
             os.makedirs(parent, exist_ok=True)
         self._init_schema()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def _init_schema(self) -> None:
         with self._connect() as conn:

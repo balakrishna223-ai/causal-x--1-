@@ -173,3 +173,64 @@ def test_gmail_registration_and_passwordless_login(client: TestClient) -> None:
     assert instant_resp.status_code == 200
     assert instant_resp.json()["access_token"]
 
+
+def test_production_registration_is_limited_to_demo_tenant(
+    client: TestClient, monkeypatch
+) -> None:
+    from types import SimpleNamespace
+
+    from app.services import auth_service
+
+    existing_account = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "tenant.bound@example.com",
+            "password": "TenantBoundPass!2026",
+            "tenant_slug": "globex-fin",
+        },
+    )
+    assert existing_account.status_code == 200
+
+    monkeypatch.setattr(
+        auth_service, "get_settings", lambda: SimpleNamespace(app_env="production")
+    )
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "production.demo@example.com",
+            "password": "SecureDemoPass!2026",
+            "tenant_slug": "globex-fin",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["tenant_slug"] == "acme-cloud"
+
+    cross_tenant_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "tenant.bound@example.com",
+            "password": "TenantBoundPass!2026",
+            "tenant_slug": "globex-fin",
+        },
+    )
+    assert cross_tenant_response.status_code == 409
+
+
+def test_production_passwordless_request_is_rejected(
+    client: TestClient, monkeypatch
+) -> None:
+    from types import SimpleNamespace
+
+    from app.services import auth_service
+
+    monkeypatch.setattr(
+        auth_service, "get_settings", lambda: SimpleNamespace(app_env="production")
+    )
+    response = client.post(
+        "/api/v1/auth/passwordless/request",
+        json={"email": "operator@example.com", "tenant_slug": "globex-fin"},
+    )
+
+    assert response.status_code == 503
+

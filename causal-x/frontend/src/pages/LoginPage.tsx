@@ -16,8 +16,8 @@ type AuthMode = "password" | "register" | "passwordless";
 export function LoginPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<AuthMode>("password");
-  const [email, setEmail] = useState("ops@acme-cloud.dev");
-  const [password, setPassword] = useState("DevAcmePass!2026");
+  const [email, setEmail] = useState(import.meta.env.PROD ? "" : "ops@acme-cloud.dev");
+  const [password, setPassword] = useState(import.meta.env.PROD ? "" : "DevAcmePass!2026");
   const [fullName, setFullName] = useState("");
   const [tenantSlug, setTenantSlug] = useState<"acme-cloud" | "globex-fin">("acme-cloud");
   const [otpCode, setOtpCode] = useState("");
@@ -115,12 +115,15 @@ export function LoginPage() {
             Sign in to CAUSAL-X
           </h1>
           <p className="mt-1 text-sm text-[#475569]">
-            Authenticate with Gmail &amp; password or use Passwordless (no password) access to inspect
-            isolated metadata and proofs.
+            {import.meta.env.PROD
+              ? "Sign in with your operator account, or create an account for the public demo workspace."
+              : "Authenticate with Gmail & password or use Passwordless (no password) access to inspect isolated metadata and proofs."}
           </p>
 
           {/* Authentication Mode Tabs */}
-          <div className="mt-5 grid grid-cols-3 gap-1 rounded-lg bg-[#EFF9FF] p-1 text-xs font-medium">
+          <div
+            className={`mt-5 grid ${import.meta.env.PROD ? "grid-cols-2" : "grid-cols-3"} gap-1 rounded-lg bg-[#EFF9FF] p-1 text-xs font-medium`}
+          >
             <button
               type="button"
               onClick={() => {
@@ -153,23 +156,25 @@ export function LoginPage() {
                   : "text-[#475569] hover:text-[#0F172A]"
               }`}
             >
-              Gmail Sign up
+              {import.meta.env.PROD ? "Create Demo Account" : "Gmail Sign up"}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("passwordless");
-                setError(null);
-                setInfo(null);
-              }}
-              className={`rounded-md px-2 py-2 transition-colors ${
-                mode === "passwordless"
-                  ? "bg-white font-semibold text-[#0F172A] shadow-sm"
-                  : "text-[#475569] hover:text-[#0F172A]"
-              }`}
-            >
-              No Password
-            </button>
+            {!import.meta.env.PROD && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("passwordless");
+                  setError(null);
+                  setInfo(null);
+                }}
+                className={`rounded-md px-2 py-2 transition-colors ${
+                  mode === "passwordless"
+                    ? "bg-white font-semibold text-[#0F172A] shadow-sm"
+                    : "text-[#475569] hover:text-[#0F172A]"
+                }`}
+              >
+                No Password
+              </button>
+            )}
           </div>
 
           {error && (
@@ -184,6 +189,13 @@ export function LoginPage() {
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{info}</span>
             </div>
+          )}
+
+          {mode === "register" && import.meta.env.PROD && (
+            <p className="mt-4 rounded-lg border border-sky-100 bg-[#EFF9FF] p-3 text-xs text-[#475569]">
+              Demo accounts are limited to the Acme Cloud sample workspace. Email verification is
+              not configured; do not use sensitive credentials or connect production telemetry.
+            </p>
           )}
 
           {mode !== "passwordless" ? (
@@ -206,7 +218,7 @@ export function LoginPage() {
 
               <div>
                 <label htmlFor="email" className="block text-xs font-semibold text-[#0F172A]">
-                  Gmail or Operator Email
+                  {import.meta.env.PROD ? "Operator Email" : "Gmail or Operator Email"}
                 </label>
                 <input
                   id="email"
@@ -236,20 +248,22 @@ export function LoginPage() {
               </div>
 
               {mode === "register" && (
-                <div>
-                  <label htmlFor="tenant-reg" className="block text-xs font-semibold text-[#0F172A]">
-                    Assign Tenant Workspace
-                  </label>
-                  <select
-                    id="tenant-reg"
-                    value={tenantSlug}
-                    onChange={(e) => setTenantSlug(e.target.value as "acme-cloud" | "globex-fin")}
-                    className="mt-1.5 w-full rounded-lg border border-sky-200 bg-white px-3.5 py-2.5 text-sm text-[#0F172A] focus:border-[#0284C7] focus:outline-none"
-                  >
-                    <option value="acme-cloud">Acme Cloud Operations (us-east-1)</option>
-                    <option value="globex-fin">Globex Financial Systems (eu-central-1)</option>
-                  </select>
-                </div>
+                !import.meta.env.PROD && (
+                  <div>
+                    <label htmlFor="tenant-reg" className="block text-xs font-semibold text-[#0F172A]">
+                      Assign Tenant Workspace
+                    </label>
+                    <select
+                      id="tenant-reg"
+                      value={tenantSlug}
+                      onChange={(e) => setTenantSlug(e.target.value as "acme-cloud" | "globex-fin")}
+                      className="mt-1.5 w-full rounded-lg border border-sky-200 bg-white px-3.5 py-2.5 text-sm text-[#0F172A] focus:border-[#0284C7] focus:outline-none"
+                    >
+                      <option value="acme-cloud">Acme Cloud Operations (us-east-1)</option>
+                      <option value="globex-fin">Globex Financial Systems (eu-central-1)</option>
+                    </select>
+                  </div>
+                )
               )}
 
               <button
@@ -261,7 +275,9 @@ export function LoginPage() {
                 {loading
                   ? "Authenticating..."
                   : mode === "register"
-                    ? "Create Gmail Operator & Sign in"
+                    ? import.meta.env.PROD
+                      ? "Create Demo Account & Sign in"
+                      : "Create Gmail Operator & Sign in"
                     : "Sign in with Email & Password"}
               </button>
             </form>
@@ -345,37 +361,39 @@ export function LoginPage() {
             </form>
           )}
 
-          <div className="mt-6 border-t border-sky-100 pt-5">
-            <p className="text-xs font-semibold text-[#475569]">
-              Quick Tenant Operator Presets
-            </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("password");
-                  setEmail("ops@acme-cloud.dev");
-                  setPassword("DevAcmePass!2026");
-                  setTenantSlug("acme-cloud");
-                }}
-                className="rounded-lg border border-sky-200 bg-[#EFF9FF] px-3 py-2 text-left text-xs font-medium text-[#0F172A] hover:bg-[#E0F2FE]"
-              >
-                Acme Cloud (us-east-1)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("password");
-                  setEmail("ops@globex-fin.dev");
-                  setPassword("DevGlobexPass!2026");
-                  setTenantSlug("globex-fin");
-                }}
-                className="rounded-lg border border-sky-200 bg-[#EFF9FF] px-3 py-2 text-left text-xs font-medium text-[#0F172A] hover:bg-[#E0F2FE]"
-              >
-                Globex Fin (eu-central-1)
-              </button>
+          {!import.meta.env.PROD && (
+            <div className="mt-6 border-t border-sky-100 pt-5">
+              <p className="text-xs font-semibold text-[#475569]">
+                Quick Tenant Operator Presets
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("password");
+                    setEmail("ops@acme-cloud.dev");
+                    setPassword("DevAcmePass!2026");
+                    setTenantSlug("acme-cloud");
+                  }}
+                  className="rounded-lg border border-sky-200 bg-[#EFF9FF] px-3 py-2 text-left text-xs font-medium text-[#0F172A] hover:bg-[#E0F2FE]"
+                >
+                  Acme Cloud (us-east-1)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("password");
+                    setEmail("ops@globex-fin.dev");
+                    setPassword("DevGlobexPass!2026");
+                    setTenantSlug("globex-fin");
+                  }}
+                  className="rounded-lg border border-sky-200 bg-[#EFF9FF] px-3 py-2 text-left text-xs font-medium text-[#0F172A] hover:bg-[#E0F2FE]"
+                >
+                  Globex Fin (eu-central-1)
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>

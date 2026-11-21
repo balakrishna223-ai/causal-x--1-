@@ -14,7 +14,7 @@ CAUSAL-X is a locally runnable, real-time, privacy-first, proof-carrying AIOps o
   - Canonical JSON, UUID payload IDs, SHA-256 + HMAC proof generation, SQLite durable outbox with exponential backoff retry.
 - **Tier 2 — Central SaaS Backend (`backend/`)**:
   - FastAPI + SQLAlchemy + Alembic + PostgreSQL.
-  - Strict tenant isolation, JWT authentication, idempotent ingestion, hash/HMAC verification, out-of-order event ordering by UTC event timestamp, collector heartbeat & offline detection.
+  - Strict tenant isolation, JWT authentication, idempotent ingestion, hash/HMAC verification, out-of-order event ordering by UTC event timestamp, collector heartbeat & offline detection. In production, self-registration is restricted to the Acme Cloud demo tenant; passwordless login stays disabled until email delivery is configured.
   - Rule-based + rolling baseline + `IsolationForest` anomaly detection, `NetworkX` incident correlation, explainable root-cause hypotheses, Incident Passports, and WebSocket live broadcasts.
 - **Dashboard & Egress Proof UI (`frontend/`)**:
   - React + TypeScript + Vite + Tailwind CSS + Recharts.

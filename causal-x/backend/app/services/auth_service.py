@@ -131,11 +131,17 @@ def register_operator(db: Session, payload: RegisterRequest) -> LoginResponse:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password must be at least 6 characters",
         )
-    tenant = db.query(Tenant).filter(Tenant.slug == payload.tenant_slug.strip()).first()
+    settings = get_settings()
+    tenant_slug = (
+        "acme-cloud"
+        if settings.app_env.strip().lower() == "production"
+        else payload.tenant_slug.strip()
+    )
+    tenant = db.query(Tenant).filter(Tenant.slug == tenant_slug).first()
     if not tenant:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant '{payload.tenant_slug}' not found",
+            detail=f"Tenant '{tenant_slug}' not found",
         )
     existing = db.query(User).filter(User.email == email).first()
     if existing:
@@ -144,7 +150,17 @@ def register_operator(db: Session, payload: RegisterRequest) -> LoginResponse:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Operator email already exists with a different password",
             )
-        existing_tenant = db.query(Tenant).filter(Tenant.id == existing.tenant_id).first() or tenant
+        existing_tenant = db.query(Tenant).filter(Tenant.id == existing.tenant_id).first()
+        if (
+            settings.app_env.strip().lower() == "production"
+            and existing_tenant
+            and existing_tenant.id != tenant.id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Operator email is already registered outside the public demo workspace.",
+            )
+        existing_tenant = existing_tenant or tenant
         return _build_user_login_response(existing, existing_tenant)
 
     display_name = (payload.full_name or email.split("@", 1)[0]).strip()
@@ -165,6 +181,12 @@ def register_operator(db: Session, payload: RegisterRequest) -> LoginResponse:
 def request_passwordless_login(
     db: Session, payload: PasswordlessRequest
 ) -> PasswordlessRequestResponse:
+    if get_settings().app_env.strip().lower() == "production":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Passwordless email delivery is not configured for this service.",
+        )
+
     email = _normalize_email(payload.email)
     tenant = db.query(Tenant).filter(Tenant.slug == payload.tenant_slug.strip()).first()
     if not tenant:
@@ -207,12 +229,17 @@ def verify_passwordless_login(db: Session, payload: PasswordlessVerifyRequest) -
 
     settings = get_settings()
     if payload.instant:
-        if settings.app_env == "production":
+        if settings.app_env.strip().lower() == "production":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Instant passwordless login is disabled in production; use one-time code.",
             )
     else:
+        if settings.app_env.strip().lower() == "production":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Passwordless email delivery is not configured for this service.",
+            )
         if not payload.code or len(payload.code.strip()) < 6:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

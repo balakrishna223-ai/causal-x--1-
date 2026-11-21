@@ -26,6 +26,6 @@ The `causal-x/` folder contains the frontend, FastAPI backend, and local telemet
 
 This repository includes a Render Blueprint in `render.yaml`. It builds the React frontend, serves it and the FastAPI API from one web service, and provisions PostgreSQL. The local collector remains in the customer environment and can send telemetry to the deployed API.
 
-In Render, create a **Blueprint** and connect this repository to deploy the demo. Render generates the authentication and proof secrets; never replace them with committed values.
+[Open the live evaluation demo](https://causal-x-demo.onrender.com). New users can create an account limited to the Acme Cloud sample workspace. Email verification is not configured; do not use sensitive credentials or connect production telemetry to this public demo.
 
 The free web service may sleep when idle, and the free PostgreSQL plan has a limited lifetime and storage. This is suitable for evaluation, not continuous production availability.
